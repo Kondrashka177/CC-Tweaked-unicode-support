@@ -8,6 +8,7 @@ local utf8_offset = utf8.offset
 local utf8_codes = utf8.codes
 local string_sub = string.sub
 local string_format = string.format
+local string_rep = string.rep
 
 local function make_invalid_error(position)
     return string_format("Invalid UTF-8 at byte %d", position)
@@ -133,10 +134,67 @@ local function codepoints(text)
     return utf8_codes(text)
 end
 
+local function width(text)
+    expect(1, text, "string")
+
+    return check_valid(text)
+end
+
+local function ensure_width(text, width)
+    expect(1, text, "string")
+    expect(2, width, "number")
+
+    check_integer(2, width, "width")
+
+    if width < 0 then
+        error("bad argument #2 (width must be non-negative)", 2)
+    end
+
+    local text_width = check_valid(text)
+
+    if text_width == width then
+        return text
+    elseif text_width > width then
+        return sub(text, 1, width)
+    else
+        return text .. string_rep(" ", width - text_width)
+    end
+end
+
+local function wrap(text, width)
+    expect(1, text, "string")
+    expect(2, width, "number")
+
+    check_integer(2, width, "width")
+
+    if width < 1 then
+        error("bad argument #2 (width must be positive)", 2)
+    end
+
+    local length = check_valid(text)
+    local lines = {}
+
+    if length == 0 then
+        return { "" }
+    end
+
+    local position = 1
+
+    while position <= length do
+        lines[#lines + 1] = sub(text, position, position + width - 1)
+        position = position + width
+    end
+
+    return lines
+end
+
 return {
     is_valid = is_valid,
     len = len,
     offset = offset,
     sub = sub,
     codepoints = codepoints,
+    width = width,
+    ensure_width = ensure_width,
+    wrap = wrap,
 }
